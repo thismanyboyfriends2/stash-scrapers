@@ -1,0 +1,11 @@
+name: Performer Image Scraper
+# ignore: .claude
+# requires: py_common
+
+imageByFragment:
+  action: script
+  script:
+    - python3
+    - performer-image-scraper.py
+
+# Last Updated 2025-01-28

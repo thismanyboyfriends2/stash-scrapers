@@ -1,0 +1,39 @@
+name: MeanBitches
+# ignore: *.html cache.json __pycache__ .gitignore requirements.txt
+
+sceneByURL:
+  - action: script
+    url:
+      - megasite.meanworld.com/scenes/
+    script:
+      - python3
+      - MeanBitches.py
+      - scrapeSceneURL
+galleryByURL:
+  - action: script
+    url:
+      - megasite.meanworld.com/scenes/
+    script:
+      - python3
+      - MeanBitches.py
+      - scrapeGalleryURL
+sceneByName:
+  action: script
+  script:
+    - python3
+    - MeanBitches.py
+    - searchScenes
+sceneByQueryFragment:
+  action: script
+  script:
+    - python3
+    - MeanBitches.py
+    - queryScene
+sceneByFragment:
+  action: script
+  script:
+    - python3
+    - MeanBitches.py
+    - enrichScene
+
+# Last Updated November 7, 2025
