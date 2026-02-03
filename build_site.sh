@@ -13,6 +13,9 @@ if [ -z "$outdir" ]; then
     outdir="_site"
 fi
 
+# Prevent unmatched globs from being passed literally
+shopt -s nullglob
+
 rm -rf "$outdir"
 mkdir -p "$outdir"
 
@@ -81,11 +84,11 @@ for f in ./scrapers/*.yml; do
     buildScraper "$f"
 done
 
-find ./scrapers/ -mindepth 2 -name *.yml -print0 | while read -d $'\0' f; do
+find ./scrapers/ -mindepth 2 -name "*.yml" -print0 | while read -d $'\0' f; do
     buildScraper "$f"
 done
 
 # handle dependency packages
-find ./scrapers/ -mindepth 2 -name package -print0 | while read -d $'\0' f; do
+find ./scrapers/ -mindepth 2 -name "package" -print0 | while read -d $'\0' f; do
     buildScraper "$f"
 done
