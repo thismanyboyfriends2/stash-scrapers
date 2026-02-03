@@ -1,0 +1,16 @@
+# Build output
+_site/
+
+# Python
+__pycache__/
+*.pyc
+
+# Test fixtures
+*.html
+
+# Runtime artifacts
+cache.json
+
+# IDE/tool settings
+.claude/
+CLAUDE.md
