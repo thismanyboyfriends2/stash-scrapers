@@ -1,24 +1,39 @@
-# Template for creating Stash scrapers source index
+# Stash Scrapers
 
-This template allows you to create a new repository with a few clicks with preconfigured GitHub action to publish your scrapers source index. 
-_This assumes you already know how to create scrapers for Stash. If you don't, first read [this](https://docs.stashapp.cc/in-app-manual/scraping/scraperdevelopment/)._
+A collection of scrapers for [Stash](https://stashapp.cc/).
 
-## How to use it?
+## Installation
 
-1. Click **Use this template** > **Create a new repository**. 
-1. Choose a repository name and click **Create repository**.
-1. Open **Settings** and head to **Pages**.
-1. Under Build and deployment select the Source as GitHub Actions.
+1. Go to **Settings** > **Metadata Providers**
+2. Click **Available Scrapers** > **Add Source**
+3. Enter the source URL:
+   ```
+   https://thismanyboyfriends2.github.io/stash-scrapers/main/index.yml
+   ```
+4. Click **Confirm**
 
-Now add your scrapers to [scrapers](/scrapers) directory and they will be automatically published to the source index.
+The scrapers will appear in the Available Scrapers list.
 
-Source index URL: [`https://<your-username>.github.io/<repository-name>/main/index.yml`](https://<your-username>.github.io/<repository-name>/main/index.yml)
+## Scrapers
 
-## Share your scrapers
+| Scraper | Description |
+|---------|-------------|
+| **MeanBitches** | Scrapes scenes and galleries from megasite.meanworld.com. Supports URL scraping, scene search, and metadata enrichment. |
+| **Performer Image Scraper** | Utility scraper that sets the currently viewed image as the attached performer's profile picture. Requires exactly one performer to be tagged on the image. |
 
-- [Create a new topic](https://discourse.stashapp.cc/t/-/146) for your scraper on the community forum.
-- [Add your source index to the list](https://discourse.stashapp.cc/t/-/834) on the Stash community forum.
+## Dependencies
 
-## License
+### MeanBitches
 
-The default license is set to [AGPL-3.0](/LICENCE). Before publishing any scrapers you can change it.
+Requires Python packages: `requests`, `beautifulsoup4`, `lxml`
+
+### Performer Image Scraper
+
+Requires `py_common` from CommunityScrapers. Add this source to Stash:
+```
+https://stashapp.github.io/CommunityScrapers/stable/index.yml
+```
+
+## Licence
+
+[AGPL-3.0](LICENCE)

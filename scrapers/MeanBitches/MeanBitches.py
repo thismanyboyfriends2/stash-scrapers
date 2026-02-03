@@ -19,23 +19,7 @@ MAX_SEARCH_PAGES = 5
 
 
 def fetch_html(url: str, timeout: int = 10, params: Optional[dict] = None) -> str:
-    """Fetch HTML content from URL with error handling.
-
-    Args:
-        url: URL to fetch
-        timeout: Request timeout in seconds
-        params: Optional dict of query parameters
-
-    Returns:
-        HTML content as string
-
-    Raises:
-        ValueError: If URL is invalid
-        Exception: Network or parsing errors
-
-    Note: High-level caching is provided by search_scenes_by_name() and scrapeSceneURL()
-    to minimize redundant network requests.
-    """
+    """Fetch HTML content from URL."""
     if not url or not isinstance(url, str):
         raise ValueError(f"Invalid URL: {url}")
 
@@ -73,14 +57,7 @@ def extract_title_from_filename(filename: str) -> Optional[str]:
 
 
 def readJSONInput() -> dict:
-    """Read and parse JSON input from stdin.
-
-    Returns:
-        Parsed JSON data as dict
-
-    Raises:
-        SystemExit: On JSON parsing error
-    """
+    """Read and parse JSON input from stdin."""
     try:
         input_data = sys.stdin.read()
         if not input_data:
@@ -303,16 +280,7 @@ def extract_search_result_data(container, scene_url: str, title: str) -> dict:
 
 
 def _fetch_and_parse_search_page(query: str, page: int, search_name: str) -> tuple:
-    """Fetch and parse a single search results page.
-
-    Args:
-        query: Search query (requests will handle URL encoding)
-        page: Page number to fetch
-        search_name: Original search name (for exact match checking)
-
-    Returns:
-        Tuple of (results_list, has_exact_match)
-    """
+    """Fetch and parse a single search results page. Returns (results_list, has_exact_match)."""
     page_results = []
     has_exact_match = False
 
@@ -423,7 +391,11 @@ def search_scenes_by_name(name: str) -> list:
         max_pages = 5
         results = _search(name, name, max_pages)
 
-        results.sort(key=_relevance_score, reverse=True)
+        def relevance_score(scene):
+            title = scene.get("title", "").lower()
+            return SequenceMatcher(None, name.lower(), title).ratio() * 1000
+
+        results.sort(key=relevance_score, reverse=True)
 
         # Log sample of first result
         if results:
@@ -437,26 +409,9 @@ def search_scenes_by_name(name: str) -> list:
     return results
 
 
-# Sort results by relevance
-def _relevance_score(scene):
-    title = scene.get("title", "").lower()
-    query = name.lower()
-
-    return SequenceMatcher(None, query, title).ratio() * 1000
-
 
 def _resolve_scene_fragment(scene_fragment: dict, prefer_exact_match: bool = False):
-    """Resolve a scene fragment by attempting to scrape URL or search by title.
-
-    Common logic for query_scene_fragment and enrich_scene_fragment.
-
-    Args:
-        scene_fragment: Scene fragment dict with optional 'url', 'title', 'file_name', 'urls'
-        prefer_exact_match: If True, search results prefer exact title match
-
-    Returns:
-        Enriched scene dict or original fragment if resolution fails
-    """
+    """Resolve a scene fragment by scraping URL or searching by title."""
     # Attempt to scrape URL(s) if present
     # Try URLs in order: urls array first (if available), then main url field
     urls_to_try = []

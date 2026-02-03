@@ -6,10 +6,6 @@ Requires exactly one performer to be attached to the image.
 """
 import json
 import sys
-from pathlib import Path
-
-# Add community scrapers directory to path to access shared py_common
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "community"))
 
 try:
     from py_common import log
@@ -17,7 +13,8 @@ try:
     from py_common import util
 except ModuleNotFoundError:
     print(
-        "You need to download the folder 'py_common' from the community repo",
+        "py_common not found. Add the CommunityScrapers source to Stash:\n"
+        "https://stashapp.github.io/CommunityScrapers/stable/index.yml",
         file=sys.stderr
     )
     sys.exit(1)
