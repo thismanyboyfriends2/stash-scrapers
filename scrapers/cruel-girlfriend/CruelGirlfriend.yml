@@ -1,0 +1,114 @@
+name: Cruel Girlfriend
+galleryByURL:
+  - action: scrapeXPath
+    url:
+      - cruelgf.com/
+    scraper: galleryScraper
+galleryByFragment:
+  action: scrapeXPath
+  scraper: galleryScraper
+  queryURL: https://cruelgf.com/Clip.php?clip_no={filename}
+  queryURLReplace:
+    filename:
+      - regex: ^(\d+).*  # extract leading clip number from folder name
+        with: $1
+sceneByURL:
+  - action: scrapeXPath
+    url:
+      - cruelgf.com/
+    scraper: sceneScraper
+sceneByFragment:
+  action: scrapeXPath
+  scraper: sceneScraper
+  queryURL: https://cruelgf.com/Clip.php?clip_no={filename}
+  queryURLReplace:
+    filename:
+      - regex: ^(\d+).mp4$
+        with: $1
+      - regex: .*[a-z]CG(\d+)H?.mp4
+        with: $1
+xPathScrapers:
+  galleryScraper:
+    common:
+      $script: //script[@type="application/ld+json"]
+    gallery:
+      Title: &title
+        selector: $script
+        postProcess:
+          - replace:
+              - regex: '(?s).+"name":\s*"([^"]+)".+'
+                with: $1
+          - javascript: &decodeHTML |
+              if (value) {
+                return value.replace(
+                /&amp;|&lt;|&gt;|&#0?39;|&quot;/g,
+                tag =>
+                  ({
+                    '&amp;': '&',
+                    '&lt;': '<',
+                    '&gt;': '>',
+                    '&#39;': "'",
+                    '&#039;': "'",
+                    '&quot;': '"'
+                    }[tag] || tag)
+                ).replace(/<br\s*\/?>/gi, '\n');
+              }
+              return value
+      Date: &date
+        selector: //comment()[contains(., 'CLIP DATE')]/following-sibling::text()[1]
+        postProcess:
+          - replace:
+              - regex: 'Added:\s*'
+                with: ""
+          - parseDate: 02-01-2006
+      Details: &details
+        selector: $script
+        postProcess:
+          - replace:
+              - regex: '(?s).+"description":\s*"([^"]+)".+'
+                with: $1
+          - javascript: *decodeHTML
+          - replace:
+              - regex: <[^>]+>|\s*...$
+                with: ""
+      Tags: &tags
+        Name: //div[@class='info-box-white']/h3[contains(.,"Added:")]/a
+      Image: &image
+        selector: //video[@id="PlayMyVideo"]/@poster
+        postProcess:
+          - replace:
+              - regex: ^(.+)$
+                with: https://cruelgf.com/$1
+      Studio: &studio
+        Name:
+          fixed: Cruel Girlfriend
+      URL: &url //html/head/meta[@property="og:url"]/@content
+      Code: &code
+        selector: //html/head/meta[@property="og:url"]/@content
+        postProcess:
+          - replace:
+              - regex: '.+clip_no=(\d+).*'
+                with: $1
+  sceneScraper:
+    common:
+      $script: //script[@type="application/ld+json"]
+    scene:
+      Title: *title
+      Date: *date
+      Performers:
+        Name:
+          selector: //title
+          postProcess:
+            - replace:
+                - regex: .+Featuring\s*([^|]+)\s\|.+
+                  with: $1
+                - regex: (?i)\s+(?:and|&)\s+
+                  with: __SEP__
+          split: __SEP__
+      Details: *details
+      Tags: *tags
+      Image: *image
+      Studio: *studio
+      URL: *url
+      Code: *code
+# Last Updated February 6, 2026
