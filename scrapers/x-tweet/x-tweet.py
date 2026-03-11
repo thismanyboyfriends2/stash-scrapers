@@ -81,7 +81,7 @@ if __name__ == "__main__":
     op, args = util.scraper_args()
     log.debug(f"Operation: {op}")
 
-    if op == "scene-by-url":
+    if op in ("scene-by-url", "image-by-url"):
         result = scrape_scene_by_url(str(args.get("url", "")))
         print(json.dumps(result))
     else:
