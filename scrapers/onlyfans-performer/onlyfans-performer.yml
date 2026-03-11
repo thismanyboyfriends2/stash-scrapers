@@ -1,0 +1,37 @@
+name: OnlyFans Performer Scraper
+
+performerByURL:
+  - action: scrapeXPath
+    url:
+      - onlyfans.com/
+    scraper: performerScraper
+
+xPathScrapers:
+  performerScraper:
+    performer:
+      Aliases:
+        selector: //div[contains(@class, 'g-user-name')]/text()
+        postProcess:
+          - replace:
+              - regex: ^\s+|\s+$
+                with: ""
+      Details:
+        selector: //div[contains(@class, 'b-user-info__text')]//text()
+        concat: "\n"
+        postProcess:
+          - replace:
+              - regex: ^\s+|\s+$
+                with: ""
+          - replace:
+              - regex: \n\s+
+                with: "\n"
+      Image:
+        selector: //div[contains(@class, 'g-avatar__img-wrapper')]/img/@src
+      URLs:
+        selector: //link[@rel='canonical']/@href | //a[contains(@id, 'm-tab-social')]/@href | //p[contains(@class, 'b-user-info__detail')]//a/text()
+
+driver:
+  useCDP: true
+  sleep: 3
+
+# Last Updated 2026-02-03

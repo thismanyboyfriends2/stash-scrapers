@@ -1,3 +1,4 @@
 *.html
 cache.json
+examples/
 __pycache__/
