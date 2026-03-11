@@ -1,6 +1,20 @@
 name: X (Twitter) Tweet
 # requires: py_common
 
+sceneByFragment:
+  action: script
+  script:
+    - python3
+    - x-tweet.py
+    - scene-by-fragment
+
+sceneByQueryFragment:
+  action: script
+  script:
+    - python3
+    - x-tweet.py
+    - scene-by-query-fragment
+
 sceneByURL:
   - action: script
     url:
@@ -20,3 +34,13 @@ imageByURL:
       - python3
       - x-tweet.py
       - image-by-url
+
+galleryByURL:
+  - action: script
+    url:
+      - x.com/
+      - twitter.com/
+    script:
+      - python3
+      - x-tweet.py
+      - gallery-by-url
