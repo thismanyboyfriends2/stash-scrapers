@@ -10,3 +10,13 @@ sceneByURL:
       - python3
       - x-tweet.py
       - scene-by-url
+
+imageByURL:
+  - action: script
+    url:
+      - x.com/
+      - twitter.com/
+    script:
+      - python3
+      - x-tweet.py
+      - image-by-url
