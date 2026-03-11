@@ -41,7 +41,7 @@ def scrape_scene_by_url(url: str) -> dict:
             "url": url,
             "studio": {"name": username},
             "performers": [{"name": username}],
-            "tags": [{"name": "Missing or removed"}],
+            "tags": [{"name": "Missing or removed"}, {"name": "unstashable"}],
         }
 
     tweet = data.get("tweet", {})
@@ -63,9 +63,21 @@ def scrape_scene_by_url(url: str) -> dict:
     # Tags: prefer API-provided hashtags list, fall back to regex on text
     hashtags = tweet.get("hashtags")
     raw_tags = hashtags if hashtags is not None else re.findall(r'#(\w+)', text)
-    tags = [{"name": tag} for tag in raw_tags]
+    tags = [{"name": tag} for tag in raw_tags] + [{"name": "unstashable"}]
 
-    return {
+    # Thumbnail: first video thumbnail, or first photo URL
+    image = None
+    media = tweet.get("media") or {}
+    all_media = media.get("all") or []
+    for item in all_media:
+        if item.get("type") == "video" and item.get("thumbnail_url"):
+            image = item["thumbnail_url"]
+            break
+        if item.get("type") == "photo" and item.get("url"):
+            image = item["url"]
+            break
+
+    result = {
         "title": first_line,
         "date": date,
         "code": tweet_id,
@@ -75,15 +87,47 @@ def scrape_scene_by_url(url: str) -> dict:
         "performers": [{"name": handle}],
         "tags": tags,
     }
+    if image:
+        result["image"] = image
+    return result
+
+
+def scrape_gallery_by_url(url: str) -> dict:
+    result = scrape_scene_by_url(url)
+    # Gallery has no 'code' field
+    result.pop("code", None)
+    return result
+
+
+def find_tweet_url(args: dict) -> str:
+    """Extract a tweet URL from fragment args (url field or urls list)."""
+    url = args.get("url") or ""
+    if parse_tweet_url(url)[1]:
+        return url
+    for u in args.get("urls") or []:
+        if parse_tweet_url(u)[1]:
+            return u
+    return ""
 
 
 if __name__ == "__main__":
     op, args = util.scraper_args()
     log.debug(f"Operation: {op}")
 
+    url = str(args.get("url", ""))
     if op in ("scene-by-url", "image-by-url"):
-        result = scrape_scene_by_url(str(args.get("url", "")))
+        result = scrape_scene_by_url(url)
         print(json.dumps(result))
+    elif op == "gallery-by-url":
+        result = scrape_gallery_by_url(url)
+        print(json.dumps(result))
+    elif op in ("scene-by-fragment", "scene-by-query-fragment"):
+        tweet_url = find_tweet_url(args)
+        result = scrape_scene_by_url(tweet_url) if tweet_url else {}
+        if op == "scene-by-query-fragment":
+            print(json.dumps([result] if result else []))
+        else:
+            print(json.dumps(result))
     else:
         log.error(f"Unknown operation: {op}")
         sys.exit(69)

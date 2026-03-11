@@ -13,4 +13,5 @@ cache.json
 
 # IDE/tool settings
 .claude/
+.serena/
 CLAUDE.md
