@@ -29,7 +29,6 @@ def scrape_scene_by_url(url: str) -> dict:
 
     try:
         response = requests.get(api_url, timeout=15)
-        response.raise_for_status()
         data = response.json()
     except requests.exceptions.RequestException as e:
         log.error(f"Request failed: {e}")
