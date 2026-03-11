@@ -1,0 +1,12 @@
+name: X (Twitter) Tweet
+# requires: py_common
+
+sceneByURL:
+  - action: script
+    url:
+      - x.com/
+      - twitter.com/
+    script:
+      - python3
+      - x-tweet.py
+      - scene-by-url
