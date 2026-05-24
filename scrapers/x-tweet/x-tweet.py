@@ -7,7 +7,16 @@ import sys
 from datetime import datetime, timezone
 
 import requests
-from py_common import log, util
+
+try:
+    from py_common import log, util
+except ModuleNotFoundError:
+    print(
+        "py_common not found. Add the CommunityScrapers source to Stash:\n"
+        "https://stashapp.github.io/CommunityScrapers/stable/index.yml",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 
 def parse_tweet_url(url: str) -> tuple[str, str]:
@@ -41,7 +50,7 @@ def scrape_scene_by_url(url: str) -> dict:
             "url": url,
             "studio": {"name": username},
             "performers": [{"name": username}],
-            "tags": [{"name": "Missing or removed"}, {"name": "unstashable"}],
+            "tags": [{"name": "Missing or removed"}],
         }
 
     tweet = data.get("tweet", {})
@@ -63,7 +72,7 @@ def scrape_scene_by_url(url: str) -> dict:
     # Tags: prefer API-provided hashtags list, fall back to regex on text
     hashtags = tweet.get("hashtags")
     raw_tags = hashtags if hashtags is not None else re.findall(r'#(\w+)', text)
-    tags = [{"name": tag} for tag in raw_tags] + [{"name": "unstashable"}]
+    tags = [{"name": tag} for tag in raw_tags]
 
     # Thumbnail: first video thumbnail, or first photo URL
     image = None
