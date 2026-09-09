@@ -1,0 +1,56 @@
+name: Soulkyn Performer Scraper
+
+performerByURL:
+  - action: scrapeXPath
+    url:
+      - soulkyn.com/l/
+    scraper: performerScraper
+
+xPathScrapers:
+  performerScraper:
+    performer:
+      Name:
+        selector: //h1//span[@class="transition-colors duration-200"]/text()
+        postProcess:
+          - replace:
+              - regex: ^\s+|\s+$
+                with: ""
+      Gender:
+        selector: //span[contains(@aria-label, 'Gender:')]/text()
+        postProcess:
+          - replace:
+              - regex: ^\s+|\s+$
+                with: ""
+          - map:
+              Female: FEMALE
+              Male: MALE
+      Image:
+        selector: //meta[@property='og:image']/@content
+      Details:
+        # The rendered DOM has <p class="...msg-chat..."></p> immediately
+        # followed by a sibling <p> holding the actual text - browsers (and
+        # lxml) auto-close the msg-chat <p> when they hit the nested <p>
+        # opening tag, per HTML5 parsing rules, so the text ends up as a
+        # sibling rather than a child.
+        selector: //p[contains(@class, 'msg-chat')]/following-sibling::p[1]//text()
+        concat: " "
+        postProcess:
+          - replace:
+              - regex: ^\s+|\s+$
+                with: ""
+      Tags:
+        selector: //a[contains(@href, '/xp/tag/')]/span[@class="ml-1"]/text() | //a[contains(@href, '/xp/trait/')]/span[@class="!text-sm"]/text() | //a[contains(@href, '/xp/physical/')]/span[@class="!text-sm"]/text()
+
+driver:
+  useCDP: true
+  sleep: 3
+
+# Soulkyn sits behind Cloudflare bot management that keys off the TLS/JA3
+# fingerprint, not just headers - a plain HTTP GET (curl, Stash's default
+# fetcher) gets a "Just a moment..." challenge page even with a spoofed
+# Chrome User-Agent. useCDP makes Stash drive a real Chrome browser
+# instead, which has a genuine Chrome TLS fingerprint and gets through.
+# The profile page is server-rendered, so once past Cloudflare all fields
+# are present directly in the DOM - no signed API calls needed.
+
+# Last Updated 2026-07-21

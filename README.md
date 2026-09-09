@@ -22,6 +22,7 @@ The scrapers will appear in the Available Scrapers list.
 | **MeanBitches** | Scrapes scenes and galleries from megasite.meanworld.com. Supports URL scraping, scene search, and metadata enrichment. |
 | **OnlyFans Performer Scraper** | Scrapes performer metadata from OnlyFans profile pages. Extracts display name (as alias), bio, profile image, and all linked URLs (social media, wishlists, etc.). |
 | **Performer Image Scraper** | Utility scraper that sets the currently viewed image as the attached performer's profile picture. Requires exactly one performer to be tagged on the image. |
+| **Soulkyn Performer Scraper** | Scrapes performer metadata from soulkyn.com profile pages. Extracts name, gender, bio, profile image, and tags. |
 
 ## Dependencies
 
@@ -38,6 +39,10 @@ Requires Chrome DevTools Protocol (CDP) for JavaScript rendering. Configure the 
    - Windows: `C:\Program Files\Google\Chrome\Application\chrome.exe`
    - Linux: `/usr/bin/chromium`
    - macOS: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
+
+### Soulkyn Performer Scraper
+
+Requires Chrome DevTools Protocol (CDP), same as OnlyFans Performer Scraper above — Soulkyn sits behind Cloudflare bot management that a plain HTTP fetch can't get past.
 
 ### Performer Image Scraper
 
