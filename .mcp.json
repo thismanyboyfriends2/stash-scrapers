@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "stash": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/home/matt/workspace/thismanyboyfriends2/stash_mcp_server",
+        "stash_mcp_server"
+      ],
+      "env": {}
+    }
+  }
+}
