@@ -554,29 +554,30 @@ def scrapeGalleryURL(url: str) -> dict:
     return ret
 
 
-# Read the input
-input_data = readJSONInput()
-operation = sys.argv[1] if len(sys.argv) > 1 else "unknown"
-log.debug(f"=== OPERATION START: {operation} ===")
+if __name__ == "__main__":
+    # Read the input
+    input_data = readJSONInput()
+    operation = sys.argv[1] if len(sys.argv) > 1 else "unknown"
+    log.debug(f"=== OPERATION START: {operation} ===")
 
-if operation == "scrapeSceneURL":
-    url = str(input_data.get('url'))
-    ret = scrapeSceneURL(url)
-    print(json.dumps(ret))
-elif operation == "scrapeGalleryURL":
-    url = str(input_data.get('url'))
-    ret = scrapeGalleryURL(url)
-    print(json.dumps(ret))
-elif operation == "searchScenes":
-    name = str(input_data.get('name'))
-    ret = search_scenes_by_name(name)
-    print(json.dumps(ret))
-elif operation == "queryScene":
-    ret = query_scene_fragment(input_data)
-    print(json.dumps(ret))
-elif operation == "enrichScene":
-    ret = enrich_scene_fragment(input_data)
-    print(json.dumps(ret))
-else:
-    log.error(f"Unknown operation: {operation}")
-    sys.exit(69)
+    if operation == "scrapeSceneURL":
+        url = str(input_data.get('url'))
+        ret = scrapeSceneURL(url)
+        print(json.dumps(ret))
+    elif operation == "scrapeGalleryURL":
+        url = str(input_data.get('url'))
+        ret = scrapeGalleryURL(url)
+        print(json.dumps(ret))
+    elif operation == "searchScenes":
+        name = str(input_data.get('name'))
+        ret = search_scenes_by_name(name)
+        print(json.dumps(ret))
+    elif operation == "queryScene":
+        ret = query_scene_fragment(input_data)
+        print(json.dumps(ret))
+    elif operation == "enrichScene":
+        ret = enrich_scene_fragment(input_data)
+        print(json.dumps(ret))
+    else:
+        log.error(f"Unknown operation: {operation}")
+        sys.exit(69)
