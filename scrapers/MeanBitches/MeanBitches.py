@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Any
 from difflib import SequenceMatcher
 from bs4 import BeautifulSoup
-from py_common import log
+from py_common import log, util
 from py_common.cache import cache_to_disk
 
 
@@ -54,24 +54,6 @@ def extract_title_from_filename(filename: str) -> Optional[str]:
     # pathlib.Path.stem removes both path and extension
     title = Path(filename).stem
     return title if title else None
-
-
-def readJSONInput() -> dict:
-    """Read and parse JSON input from stdin."""
-    try:
-        input_data = sys.stdin.read()
-        if not input_data:
-            log.error("No input data received")
-            sys.exit(69)
-        parsed = json.loads(input_data)
-        log.debug(f"Input received: {json.dumps(parsed)}")
-        return parsed
-    except json.JSONDecodeError as e:
-        log.error(f"Invalid JSON input: {str(e)}")
-        sys.exit(69)
-    except Exception as e:
-        log.error(f"Error reading input: {str(e)}")
-        sys.exit(69)
 
 
 def _extract_title(soup: BeautifulSoup) -> Optional[str]:
@@ -588,29 +570,27 @@ def scrapeGalleryURL(url: str) -> dict:
 
 
 if __name__ == "__main__":
-    # Read the input
-    input_data = readJSONInput()
-    operation = sys.argv[1] if len(sys.argv) > 1 else "unknown"
-    log.debug(f"=== OPERATION START: {operation} ===")
+    op, args = util.scraper_args()
+    log.debug(f"=== OPERATION START: {op} ===")
 
-    if operation == "scrapeSceneURL":
-        url = str(input_data.get('url'))
+    if op == "scene-by-url":
+        url = str(args.get('url'))
         ret = scrapeSceneURL(url)
         print(json.dumps(ret))
-    elif operation == "scrapeGalleryURL":
-        url = str(input_data.get('url'))
+    elif op == "gallery-by-url":
+        url = str(args.get('url'))
         ret = scrapeGalleryURL(url)
         print(json.dumps(ret))
-    elif operation == "searchScenes":
-        name = str(input_data.get('name'))
+    elif op == "scene-by-name":
+        name = str(args.get('name'))
         ret = search_scenes_by_name(name)
         print(json.dumps(ret))
-    elif operation == "queryScene":
-        ret = query_scene_fragment(input_data)
+    elif op == "scene-by-query-fragment":
+        ret = query_scene_fragment(args)
         print(json.dumps(ret))
-    elif operation == "enrichScene":
-        ret = enrich_scene_fragment(input_data)
+    elif op == "scene-by-fragment":
+        ret = enrich_scene_fragment(args)
         print(json.dumps(ret))
     else:
-        log.error(f"Unknown operation: {operation}")
+        log.error(f"Unknown operation: {op}")
         sys.exit(69)
