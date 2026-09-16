@@ -19,6 +19,7 @@ The scrapers will appear in the Available Scrapers list.
 | Scraper | Description |
 |---------|-------------|
 | **Cruel Girlfriend** | Scrapes scenes and galleries from cruelgf.com. Extracts title, date, description, tags, performers (from page title), and cover image. Supports both direct clip URLs and ThePornDB-style `.html` URLs. |
+| **Cum Eating Cuckolds** | Scrapes scenes from cumeatingcuckolds.com. Extracts title, description, date, performer(s), cover image, and site code from the page's embedded schema.org JSON-LD data. Supports both public `/tour/updates/` and subscriber `/subscriber/fiction/` scene URLs. |
 | **MeanBitches** | Scrapes scenes and galleries from megasite.meanworld.com. Supports URL scraping, scene search, and metadata enrichment. |
 | **OnlyFans Performer Scraper** | Scrapes performer metadata from OnlyFans profile pages. Extracts display name (as alias), bio, profile image, and all linked URLs (social media, wishlists, etc.). |
 | **Performer Image Scraper** | Utility scraper that sets the currently viewed image as the attached performer's profile picture. Requires exactly one performer to be tagged on the image. |
