@@ -1,4 +1,5 @@
 name: MeanBitches
+# requires: py_common
 # ignore: *.html cache.json __pycache__ .gitignore requirements.txt
 
 sceneByURL:
@@ -8,7 +9,7 @@ sceneByURL:
     script:
       - python3
       - MeanBitches.py
-      - scrapeSceneURL
+      - scene-by-url
 galleryByURL:
   - action: script
     url:
@@ -16,24 +17,24 @@ galleryByURL:
     script:
       - python3
       - MeanBitches.py
-      - scrapeGalleryURL
+      - gallery-by-url
 sceneByName:
   action: script
   script:
     - python3
     - MeanBitches.py
-    - searchScenes
+    - scene-by-name
 sceneByQueryFragment:
   action: script
   script:
     - python3
     - MeanBitches.py
-    - queryScene
+    - scene-by-query-fragment
 sceneByFragment:
   action: script
   script:
     - python3
     - MeanBitches.py
-    - enrichScene
+    - scene-by-fragment
 
 # Last Updated November 7, 2025
