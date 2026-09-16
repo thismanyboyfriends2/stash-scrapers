@@ -76,55 +76,43 @@ def readJSONInput() -> dict:
 
 def extract_title(html_content: str) -> Optional[str]:
     """Extract title from data-title attribute of packageinfo div."""
-    try:
-        soup = BeautifulSoup(html_content, 'lxml')
-        packageinfo = soup.find('div', id=re.compile(r'packageinfo_\d+'))
-        if packageinfo and packageinfo.get('data-title'):
-            return html.unescape(str(packageinfo['data-title']))
-    except Exception as e:
-        log.debug(f"Error extracting title: {str(e)}")
+    soup = BeautifulSoup(html_content, 'lxml')
+    packageinfo = soup.find('div', id=re.compile(r'packageinfo_\d+'))
+    if packageinfo and packageinfo.get('data-title'):
+        return html.unescape(str(packageinfo['data-title']))
     return None
 
 
 def extract_details(html_content: str) -> Optional[str]:
     """Extract details from vidImgContent paragraph."""
-    try:
-        soup = BeautifulSoup(html_content, 'lxml')
-        vid_content = soup.find('div', class_=re.compile(r'vidImgContent'))
-        if vid_content:
-            p_tag = vid_content.find('p')
-            if p_tag:
-                return html.unescape(p_tag.get_text(strip=True))
-    except Exception as e:
-        log.debug(f"Error extracting details: {str(e)}")
+    soup = BeautifulSoup(html_content, 'lxml')
+    vid_content = soup.find('div', class_=re.compile(r'vidImgContent'))
+    if vid_content:
+        p_tag = vid_content.find('p')
+        if p_tag:
+            return html.unescape(p_tag.get_text(strip=True))
     return None
 
 
 def extract_studio_name(html_content: str) -> Optional[str]:
     """Extract studio name from breadcrumb link."""
-    try:
-        soup = BeautifulSoup(html_content, 'lxml')
-        for link in soup.find_all('a', class_='link_bright'):
-            href = str(link.get('href', ''))
-            # Studio links have relative hrefs
-            if href.startswith('/'):
-                return html.unescape(link.get_text(strip=True))
-    except Exception as e:
-        log.debug(f"Error extracting studio name: {str(e)}")
+    soup = BeautifulSoup(html_content, 'lxml')
+    for link in soup.find_all('a', class_='link_bright'):
+        href = str(link.get('href', ''))
+        # Studio links have relative hrefs
+        if href.startswith('/'):
+            return html.unescape(link.get_text(strip=True))
     return None
 
 
 def extract_performers(html_content: str) -> list:
     """Extract all performer names from infolink class."""
     performers = []
-    try:
-        soup = BeautifulSoup(html_content, 'lxml')
-        for link in soup.find_all('a', class_=re.compile(r'link_bright.*infolink')):
-            name = link.get_text(strip=True)
-            if name:
-                performers.append({"name": html.unescape(name)})
-    except Exception as e:
-        log.debug(f"Error extracting performers: {str(e)}")
+    soup = BeautifulSoup(html_content, 'lxml')
+    for link in soup.find_all('a', class_=re.compile(r'link_bright.*infolink')):
+        name = link.get_text(strip=True)
+        if name:
+            performers.append({"name": html.unescape(name)})
     return performers
 
 
@@ -134,83 +122,70 @@ def extract_image(html_content: str) -> Optional[str]:
     In-page parsing only. Callers that want a network-search fallback when
     this returns None (e.g. scrapeSceneURL) own that decision themselves.
     """
-    try:
-        soup = BeautifulSoup(html_content, 'lxml')
+    soup = BeautifulSoup(html_content, 'lxml')
 
-        # 1: try og:image meta tag
-        og_image = soup.find('meta', property='og:image')
-        if og_image:
-            url = str(og_image.get('content', '')).strip()
-            # Skip empty URLs or URLs that are just the base path
-            if url and not url.endswith('contentthumbs/'):
-                # Upgrade to 4x quality: convert any version (1x, 2x, 3x) to 4x
-                url = re.sub(r'/meanbitches/content/contentthumbs/(.*)-[1234]x\.jpg$', r'/content//contentthumbs/\1-4x.jpg', url)
-                if url:
-                    return url
+    # 1: try og:image meta tag
+    og_image = soup.find('meta', property='og:image')
+    if og_image:
+        url = str(og_image.get('content', '')).strip()
+        # Skip empty URLs or URLs that are just the base path
+        if url and not url.endswith('contentthumbs/'):
+            # Upgrade to 4x quality: convert any version (1x, 2x, 3x) to 4x
+            url = re.sub(r'/meanbitches/content/contentthumbs/(.*)-[1234]x\.jpg$', r'/content//contentthumbs/\1-4x.jpg', url)
+            if url:
+                return url
 
-        # 2: Extract preview image from dvd_preview_thumb class
-        preview_img = soup.find('img', class_=re.compile(r'dvd_preview_thumb'))
-        if preview_img:
-            thumb_url = str(preview_img.get('src', '')).strip()
-            if thumb_url:
-                return normalize_url(thumb_url) or thumb_url
+    # 2: Extract preview image from dvd_preview_thumb class
+    preview_img = soup.find('img', class_=re.compile(r'dvd_preview_thumb'))
+    if preview_img:
+        thumb_url = str(preview_img.get('src', '')).strip()
+        if thumb_url:
+            return normalize_url(thumb_url) or thumb_url
 
-        # 3: try to extract movie thumbnail from JavaScript
-        thumb_match = re.search(r'thumbnail:\s*"([^"]*\.jpg)"', html_content)
-        if thumb_match:
-            thumb_url = thumb_match.group(1).strip()
-            if thumb_url:
-                return normalize_url(thumb_url) or thumb_url
-
-    except Exception as e:
-        log.debug(f"Error extracting image: {str(e)}")
+    # 3: try to extract movie thumbnail from JavaScript
+    thumb_match = re.search(r'thumbnail:\s*"([^"]*\.jpg)"', html_content)
+    if thumb_match:
+        thumb_url = thumb_match.group(1).strip()
+        if thumb_url:
+            return normalize_url(thumb_url) or thumb_url
 
     return None
 
 
 def extract_date(html_content: str) -> Optional[str]:
     """Extract date from page"""
-    try:
-        soup = BeautifulSoup(html_content, 'lxml')
-        for li in soup.find_all('li', class_=re.compile(r'text_med')):
-            text = li.get_text(strip=True)
-            date_match = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', text)
-            if date_match:
-                date_str = date_match.group(1).strip()
-                try:
-                    parsed_date = datetime.strptime(date_str, "%m/%d/%Y")
-                    return parsed_date.strftime("%Y-%m-%d")
-                except ValueError:
-                    return date_str
-    except Exception as e:
-        log.debug(f"Error extracting date: {str(e)}")
+    soup = BeautifulSoup(html_content, 'lxml')
+    for li in soup.find_all('li', class_=re.compile(r'text_med')):
+        text = li.get_text(strip=True)
+        date_match = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', text)
+        if date_match:
+            date_str = date_match.group(1).strip()
+            try:
+                parsed_date = datetime.strptime(date_str, "%m/%d/%Y")
+                return parsed_date.strftime("%Y-%m-%d")
+            except ValueError:
+                return date_str
     return None
 
 
 def extract_tags(html_content: str) -> list:
     """Extract all tag names from blogTags."""
     tags = []
-    try:
-        soup = BeautifulSoup(html_content, 'lxml')
-        blogtags_div = soup.find('div', class_=re.compile(r'blogTags'))
-        if blogtags_div:
-            for link in blogtags_div.find_all('a', class_=re.compile(r'border_btn')):
-                tag_name = link.get_text(strip=True)
-                if tag_name:
-                    tags.append({"name": html.unescape(tag_name)})
-    except Exception as e:
-        log.debug(f"Error extracting tags: {str(e)}")
+    soup = BeautifulSoup(html_content, 'lxml')
+    blogtags_div = soup.find('div', class_=re.compile(r'blogTags'))
+    if blogtags_div:
+        for link in blogtags_div.find_all('a', class_=re.compile(r'border_btn')):
+            tag_name = link.get_text(strip=True)
+            if tag_name:
+                tags.append({"name": html.unescape(tag_name)})
     return tags
 
 
 def extract_studio_code(html_content: str) -> Optional[str]:
     """Extract studio code from upload path in HTML."""
-    try:
-        match = re.search(r'/content//upload/([^/]+)/', html_content)
-        if match:
-            return match.group(1)
-    except Exception as e:
-        log.debug(f"Error extracting studio code: {str(e)}")
+    match = re.search(r'/content//upload/([^/]+)/', html_content)
+    if match:
+        return match.group(1)
     return None
 
 
@@ -494,6 +469,17 @@ def enrich_scene_fragment(scene_fragment: dict) -> dict:
     return _resolve_scene_fragment(scene_fragment, prefer_exact_match=True)
 
 
+def _extract_field(extractor, html_content: str, default=None):
+    """Run a field extractor, applying this module's one failure policy:
+    log a warning and fall back to `default` instead of each extractor
+    deciding independently whether to swallow its own exceptions."""
+    try:
+        return extractor(html_content)
+    except Exception as e:
+        log.warning(f"{extractor.__name__} failed: {e}")
+        return default
+
+
 @cache_to_disk(ttl=3600)  # Cache for 1 hour
 def scrapeSceneURL(url: str) -> dict:
     """Scrape scene data from MeanBitches page by URL.
@@ -505,23 +491,23 @@ def scrapeSceneURL(url: str) -> dict:
 
     html_content = fetch_html(url)
 
-    if title := extract_title(html_content):
+    if title := _extract_field(extract_title, html_content):
         ret['title'] = title
 
-    if details := extract_details(html_content):
+    if details := _extract_field(extract_details, html_content):
         ret['details'] = details
 
     studio = {}
-    if studio_name := extract_studio_name(html_content):
+    if studio_name := _extract_field(extract_studio_name, html_content):
         studio['name'] = studio_name
     studio['url'] = "https://www.meanbitches.com/"
     if studio:
         ret['studio'] = studio
 
-    if performers := extract_performers(html_content):
+    if performers := _extract_field(extract_performers, html_content, default=[]):
         ret['performers'] = performers
 
-    image = extract_image(html_content)
+    image = _extract_field(extract_image, html_content)
     if not image and title:
         # extract_image only parses this page; fall back to a title search
         # for scenes whose image isn't in the page's own markup.
@@ -531,13 +517,13 @@ def scrapeSceneURL(url: str) -> dict:
     if image:
         ret['image'] = image
 
-    if date := extract_date(html_content):
+    if date := _extract_field(extract_date, html_content):
         ret['date'] = date
 
-    if tags := extract_tags(html_content):
+    if tags := _extract_field(extract_tags, html_content, default=[]):
         ret['tags'] = tags
 
-    if code := extract_studio_code(html_content):
+    if code := _extract_field(extract_studio_code, html_content):
         ret['code'] = code
 
     ret['director'] = "Glenn King"
