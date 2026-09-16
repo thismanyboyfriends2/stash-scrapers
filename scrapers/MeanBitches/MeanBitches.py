@@ -129,7 +129,11 @@ def extract_performers(html_content: str) -> list:
 
 
 def extract_image(html_content: str) -> Optional[str]:
-    """Extract image URL from og:image meta tag, preview thumb, scene search results, or JavaScript."""
+    """Extract image URL from og:image meta tag, preview thumb, or JavaScript.
+
+    In-page parsing only. Callers that want a network-search fallback when
+    this returns None (e.g. scrapeSceneURL) own that decision themselves.
+    """
     try:
         soup = BeautifulSoup(html_content, 'lxml')
 
@@ -151,14 +155,7 @@ def extract_image(html_content: str) -> Optional[str]:
             if thumb_url:
                 return normalize_url(thumb_url) or thumb_url
 
-        # 3: search for scene by title to get image from search results
-        title = extract_title(html_content)
-        if title:
-            search_results = search_scenes_by_name(title)
-            if search_results and search_results[0].get("image"):
-                return search_results[0]["image"]
-
-        # 4: try to extract movie thumbnail from JavaScript
+        # 3: try to extract movie thumbnail from JavaScript
         thumb_match = re.search(r'thumbnail:\s*"([^"]*\.jpg)"', html_content)
         if thumb_match:
             thumb_url = thumb_match.group(1).strip()
@@ -524,7 +521,14 @@ def scrapeSceneURL(url: str) -> dict:
     if performers := extract_performers(html_content):
         ret['performers'] = performers
 
-    if image := extract_image(html_content):
+    image = extract_image(html_content)
+    if not image and title:
+        # extract_image only parses this page; fall back to a title search
+        # for scenes whose image isn't in the page's own markup.
+        search_results = search_scenes_by_name(title)
+        if search_results and search_results[0].get("image"):
+            image = search_results[0]["image"]
+    if image:
         ret['image'] = image
 
     if date := extract_date(html_content):
