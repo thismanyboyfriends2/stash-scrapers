@@ -1,0 +1,70 @@
+name: Cum Eating Cuckolds
+sceneByURL:
+  - action: scrapeXPath
+    url:
+      - cumeatingcuckolds.com/tour/updates/
+      - cumeatingcuckolds.com/subscriber/fiction/
+    scraper: sceneScraper
+xPathScrapers:
+  sceneScraper:
+    common:
+      # scoped to the VideoObject block: the page also carries Organization/WebSite/
+      # BreadcrumbList ld+json blocks that would otherwise collide on shared keys like "name"
+      $script: //script[@type="application/ld+json" and contains(text(),'"@type":"VideoObject"')]
+    scene:
+      Title:
+        selector: $script
+        postProcess:
+          - replace:
+              - regex: '(?s).+?"name":"([^"]+)".+'
+                with: $1
+      Details:
+        selector: $script
+        postProcess:
+          - replace:
+              - regex: '(?s).+?"description":"([^"]+)".+'
+                with: $1
+      Date:
+        selector: $script
+        postProcess:
+          - replace:
+              - regex: '(?s).+?"uploadDate":"([^"]+)".+'
+                with: $1
+          - parseDate: "2006-01-02T15:04:05-07:00"
+      Image:
+        selector: $script
+        postProcess:
+          - replace:
+              - regex: '(?s).+?"thumbnailUrl":"([^"]+)".+'
+                with: $1
+              # "_b" (small) -> "_z" (large) thumbnail variant
+              - regex: _b\.jpg
+                with: _z.jpg
+      Performers:
+        Name:
+          selector: $script
+          postProcess:
+            - replace:
+                # isolate the actor array's contents, then strip JSON syntax down to
+                # a __SEP__-joined name list for `split` below
+                - regex: '(?s).*"actor":\[(.*?)\].*'
+                  with: $1
+                - regex: '\{"@type":"Person","name":"'
+                  with: ""
+                - regex: '","url":"[^"]*"\},?'
+                  with: __SEP__
+                - regex: __SEP__$
+                  with: ""
+          split: __SEP__
+      Studio:
+        Name:
+          fixed: Cum Eating Cuckolds
+      URL:
+        selector: //html/head/meta[@property="og:url"]/@content
+      Code:
+        selector: //html/head/meta[@property="og:url"]/@content
+        postProcess:
+          - replace:
+              - regex: '.+/(\d+)$'
+                with: $1
+# Last Updated September 16, 2026
