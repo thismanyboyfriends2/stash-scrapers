@@ -3,7 +3,6 @@ sceneByURL:
   - action: scrapeXPath
     url:
       - cumeatingcuckolds.com/tour/updates/
-      - cumeatingcuckolds.com/subscriber/fiction/
     scraper: sceneScraper
 xPathScrapers:
   sceneScraper:
@@ -19,11 +18,7 @@ xPathScrapers:
               - regex: '(?s).+?"name":"([^"]+)".+'
                 with: $1
       Details:
-        selector: $script
-        postProcess:
-          - replace:
-              - regex: '(?s).+?"description":"([^"]+)".+'
-                with: $1
+        selector: //p[@class="blurb"]
       Date:
         selector: $script
         postProcess:
@@ -32,14 +27,7 @@ xPathScrapers:
                 with: $1
           - parseDate: "2006-01-02T15:04:05-07:00"
       Image:
-        selector: $script
-        postProcess:
-          - replace:
-              - regex: '(?s).+?"thumbnailUrl":"([^"]+)".+'
-                with: $1
-              # "_b" (small) -> "_z" (large) thumbnail variant
-              - regex: _b\.jpg
-                with: _z.jpg
+        selector: //div[@class="preview-media"]/img/@data-alt
       Performers:
         Name:
           selector: $script
