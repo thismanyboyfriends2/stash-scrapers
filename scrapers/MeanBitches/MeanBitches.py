@@ -74,18 +74,16 @@ def readJSONInput() -> dict:
         sys.exit(69)
 
 
-def extract_title(html_content: str) -> Optional[str]:
+def _extract_title(soup: BeautifulSoup) -> Optional[str]:
     """Extract title from data-title attribute of packageinfo div."""
-    soup = BeautifulSoup(html_content, 'lxml')
     packageinfo = soup.find('div', id=re.compile(r'packageinfo_\d+'))
     if packageinfo and packageinfo.get('data-title'):
         return html.unescape(str(packageinfo['data-title']))
     return None
 
 
-def extract_details(html_content: str) -> Optional[str]:
+def _extract_details(soup: BeautifulSoup) -> Optional[str]:
     """Extract details from vidImgContent paragraph."""
-    soup = BeautifulSoup(html_content, 'lxml')
     vid_content = soup.find('div', class_=re.compile(r'vidImgContent'))
     if vid_content:
         p_tag = vid_content.find('p')
@@ -94,9 +92,8 @@ def extract_details(html_content: str) -> Optional[str]:
     return None
 
 
-def extract_studio_name(html_content: str) -> Optional[str]:
+def _extract_studio_name(soup: BeautifulSoup) -> Optional[str]:
     """Extract studio name from breadcrumb link."""
-    soup = BeautifulSoup(html_content, 'lxml')
     for link in soup.find_all('a', class_='link_bright'):
         href = str(link.get('href', ''))
         # Studio links have relative hrefs
@@ -105,10 +102,9 @@ def extract_studio_name(html_content: str) -> Optional[str]:
     return None
 
 
-def extract_performers(html_content: str) -> list:
+def _extract_performers(soup: BeautifulSoup) -> list:
     """Extract all performer names from infolink class."""
     performers = []
-    soup = BeautifulSoup(html_content, 'lxml')
     for link in soup.find_all('a', class_=re.compile(r'link_bright.*infolink')):
         name = link.get_text(strip=True)
         if name:
@@ -152,9 +148,8 @@ def extract_image(html_content: str) -> Optional[str]:
     return None
 
 
-def extract_date(html_content: str) -> Optional[str]:
+def _extract_date(soup: BeautifulSoup) -> Optional[str]:
     """Extract date from page"""
-    soup = BeautifulSoup(html_content, 'lxml')
     for li in soup.find_all('li', class_=re.compile(r'text_med')):
         text = li.get_text(strip=True)
         date_match = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', text)
@@ -168,10 +163,9 @@ def extract_date(html_content: str) -> Optional[str]:
     return None
 
 
-def extract_tags(html_content: str) -> list:
+def _extract_tags(soup: BeautifulSoup) -> list:
     """Extract all tag names from blogTags."""
     tags = []
-    soup = BeautifulSoup(html_content, 'lxml')
     blogtags_div = soup.find('div', class_=re.compile(r'blogTags'))
     if blogtags_div:
         for link in blogtags_div.find_all('a', class_=re.compile(r'border_btn')):
@@ -181,12 +175,51 @@ def extract_tags(html_content: str) -> list:
     return tags
 
 
-def extract_studio_code(html_content: str) -> Optional[str]:
-    """Extract studio code from upload path in HTML."""
+def _extract_studio_code(html_content: str) -> Optional[str]:
+    """Extract studio code from upload path in HTML.
+
+    Regex over the raw markup, not the parsed tree — doesn't need `soup`.
+    """
     match = re.search(r'/content//upload/([^/]+)/', html_content)
     if match:
         return match.group(1)
     return None
+
+
+def parse_scene(soup: BeautifulSoup, html_content: str) -> dict:
+    """Parse every scrapeSceneURL field from one already-parsed page.
+
+    Walks `soup` once for title/details/studio_name/performers/date/tags,
+    instead of each field re-parsing html_content into its own tree. Each
+    field is still isolated via _extract_field, matching the failure policy
+    scrapeSceneURL already applies to extract_image: a broken field logs a
+    warning and falls back to its default rather than losing every other
+    field on the page.
+    """
+    fields: dict[str, Any] = {}
+
+    if title := _extract_field(_extract_title, soup):
+        fields['title'] = title
+
+    if details := _extract_field(_extract_details, soup):
+        fields['details'] = details
+
+    if studio_name := _extract_field(_extract_studio_name, soup):
+        fields['studio_name'] = studio_name
+
+    if performers := _extract_field(_extract_performers, soup, default=[]):
+        fields['performers'] = performers
+
+    if date := _extract_field(_extract_date, soup):
+        fields['date'] = date
+
+    if tags := _extract_field(_extract_tags, soup, default=[]):
+        fields['tags'] = tags
+
+    if code := _extract_field(_extract_studio_code, html_content):
+        fields['code'] = code
+
+    return fields
 
 
 def extract_search_result_data(container, scene_url: str, title: str) -> dict:
@@ -490,21 +523,31 @@ def scrapeSceneURL(url: str) -> dict:
     ret: dict[str, Any] = {'url': url}
 
     html_content = fetch_html(url)
+    try:
+        soup = BeautifulSoup(html_content, 'lxml')
+        fields = parse_scene(soup, html_content)
+    except Exception as e:
+        # Keep the same failure policy parse_scene applies per field: a
+        # broken parse degrades to an empty result instead of crashing the
+        # whole scrape.
+        log.warning(f"parse_scene failed: {e}")
+        fields = {}
 
-    if title := _extract_field(extract_title, html_content):
+    title = fields.get('title')
+    if title:
         ret['title'] = title
 
-    if details := _extract_field(extract_details, html_content):
+    if details := fields.get('details'):
         ret['details'] = details
 
     studio = {}
-    if studio_name := _extract_field(extract_studio_name, html_content):
+    if studio_name := fields.get('studio_name'):
         studio['name'] = studio_name
     studio['url'] = "https://www.meanbitches.com/"
     if studio:
         ret['studio'] = studio
 
-    if performers := _extract_field(extract_performers, html_content, default=[]):
+    if performers := fields.get('performers'):
         ret['performers'] = performers
 
     image = _extract_field(extract_image, html_content)
@@ -517,13 +560,13 @@ def scrapeSceneURL(url: str) -> dict:
     if image:
         ret['image'] = image
 
-    if date := _extract_field(extract_date, html_content):
+    if date := fields.get('date'):
         ret['date'] = date
 
-    if tags := _extract_field(extract_tags, html_content, default=[]):
+    if tags := fields.get('tags'):
         ret['tags'] = tags
 
-    if code := _extract_field(extract_studio_code, html_content):
+    if code := fields.get('code'):
         ret['code'] = code
 
     ret['director'] = "Glenn King"
