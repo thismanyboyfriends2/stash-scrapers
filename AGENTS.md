@@ -39,14 +39,25 @@ Published at `https://<username>.github.io/<repo>/main/index.yml`.
 
 ## Agent skills
 
+`docs/agents/` is gitignored and never committed — it holds the maintainer's private tooling
+notes (internal issue-tracker routing, label mappings, domain-doc conventions) and won't exist in
+a fresh clone or fork. If it's present, read it for that extra context; if it's absent, the
+sections below are self-contained and don't depend on it.
+
 ### Issue tracker
 
-Issues tracked on the self-hosted Forgejo instance (thismanyboyfriends2/stash-scrapers, sensitive identity), via the `fj` CLI. See `docs/agents/issue-tracker.md`.
+Issues and feature requests for this repo are filed as GitHub issues
+(`thismanyboyfriends2/stash-scrapers`). See `docs/agents/issue-tracker.md` if present for the
+maintainer's fuller internal workflow.
 
 ### Triage labels
 
-Canonical five roles used as-is (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+Five canonical triage-role labels, kept separate from this repo's own work-type labels
+(bug/enhancement/etc.): `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`,
+`wontfix`. See `docs/agents/triage-labels.md` if present for any repo-specific label-name mapping.
 
 ### Domain docs
 
-Single-context layout — CONTEXT.md + docs/adr/ at repo root. See `docs/agents/domain.md`.
+Single-context layout: read `CONTEXT.md` and `docs/adr/` at the repo root before making an
+architectural change, if they exist. See `docs/agents/domain.md` if present for more on how to
+use them.
