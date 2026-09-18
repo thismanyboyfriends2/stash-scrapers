@@ -41,7 +41,11 @@ Published at `https://<username>.github.io/<repo>/main/index.yml`.
 
 ### Issue tracker
 
-Issues tracked in GitHub Issues (thismanyboyfriends2/stash-scrapers), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues tracked on the self-hosted Forgejo instance (thismanyboyfriends2/stash-scrapers, sensitive identity), via the `fj` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical five roles used as-is (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
