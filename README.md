@@ -47,6 +47,10 @@ Requires `py_common` from CommunityScrapers. Add this source to Stash:
 https://stashapp.github.io/CommunityScrapers/stable/index.yml
 ```
 
+No other setup is needed, even when Stash has authentication enabled: the scraper reads Stash's API key and port from Stash's own `config.yml`. If you've already set `api_key` in py_common's `config.ini`, that's used as a fallback. If authentication is on but no API key exists yet, generate one in Stash under **Settings → Security**.
+
+Run the tests with `python3 -m unittest test_performer_image_scraper.py` from the scraper's directory.
+
 ## Licence
 
 [AGPL-3.0](LICENCE)
