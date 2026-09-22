@@ -95,8 +95,8 @@ def scrapeSceneURL(url: str) -> dict:
     ...
 ```
 
-### `py_common.graphql`
-Used in `performer-image-scraper.py` to query Stash's own database (e.g. resolving the performer attached to the image currently being scraped) — rarely needed; most scrapers only touch external data.
+### Calling back into Stash (not `py_common.graphql`)
+Rarely needed; most scrapers only touch external data. `py_common.graphql` reads its API key only from py_common's `config.ini`, which is empty on a fresh install, so it 401s on any Stash with authentication on — and returns `None`, which reads like "not found". A scraper that must query or mutate Stash's own database should instead discover the key from Stash's `config.yml` and talk to Stash with stdlib `urllib`, as `performer-image-scraper.py`'s `StashConnection` does — see `docs/adr/0002-scrapers-discover-stash-auth-from-config-yml.md`. Note also that Stash fetches image URLs passed to mutations without auth, so send Stash-hosted images as base64 data URIs.
 
 ## Dependency Management
 
