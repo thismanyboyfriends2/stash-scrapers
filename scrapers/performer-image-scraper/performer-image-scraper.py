@@ -61,20 +61,21 @@ def find_stash_config():
     """Locate Stash's config.yml, or None if it can't be found.
 
     Checked in order: $STASH_CONFIG_FILE (set by the official Docker image),
-    the config dir this scraper is installed under (<config>/scrapers/<name>/),
-    then the default ~/.stash.
+    the config dir this scraper is installed under (Stash runs it with the
+    working dir set to <config>/scrapers/<name>/), then the default ~/.stash.
     """
     candidates = []
     if os.environ.get("STASH_CONFIG_FILE"):
         candidates.append(Path(os.environ["STASH_CONFIG_FILE"]))
-    candidates.append(Path(__file__).resolve().parent.parent.parent / "config.yml")
+    candidates.append(Path.cwd().parent.parent / "config.yml")
     candidates.append(Path.home() / ".stash" / "config.yml")
     return next((p for p in candidates if p.is_file()), None)
 
 
 def read_py_common_api_key():
     """Read api_key from py_common's config.ini, the community-standard place."""
-    ini = Path(py_common.__file__).parent / "config.ini"
+    # __path__, not __file__: py_common may be a namespace package (no __init__.py)
+    ini = Path(next(iter(py_common.__path__))) / "config.ini"
     if not ini.is_file():
         return None
     for line in ini.read_text(encoding="utf-8").splitlines():
@@ -147,7 +148,13 @@ class StashConnection:
     def graphql(self, query, variables):
         payload = json.dumps({"query": query, "variables": variables}).encode()
         with self._request("/graphql", payload) as response:
-            result = json.load(response)
+            try:
+                result = json.load(response)
+            except json.JSONDecodeError as e:
+                raise StashError(
+                    f"{self.base_url}/graphql did not return JSON — is something "
+                    "other than Stash (e.g. a proxy login page) answering on that port?"
+                ) from e
         if result.get("errors"):
             messages = "; ".join(e.get("message", "") for e in result["errors"])
             raise StashError(f"Stash returned GraphQL errors: {messages}")
@@ -192,29 +199,22 @@ UPDATE_PERFORMER = """
 """
 
 
-def announce_result_to_stash(result) -> NoReturn:
-    """Output result to Stash via stdout."""
-    if result is None:
-        result = {}
-    print(json.dumps(result))
-    sys.exit(0)
-
-
-def main():
+def read_fragment() -> dict:
+    """Read the Image fragment Stash pipes in on stdin."""
     try:
-        run()
-    except StashError as e:
-        log.error(str(e))
-        announce_result_to_stash(None)
+        fragment = json.loads(sys.stdin.read())
+    except json.JSONDecodeError as e:
+        raise StashError(f"Could not read the fragment from Stash: {e}") from e
+    if not isinstance(fragment, dict):
+        raise StashError("Could not read the fragment from Stash: expected a JSON object")
+    return fragment
 
 
-def run():
-    fragment = json.loads(sys.stdin.read())
-
+def set_performer_image_from_fragment(fragment: dict) -> None:
+    """Set the one Performer attached to the fragment's Image to that Image."""
     image_id = fragment.get("id")
     if not image_id:
-        log.error("No image ID provided in fragment")
-        announce_result_to_stash(None)
+        raise StashError("No image ID provided in fragment")
 
     log.debug(f"Processing image ID: {image_id}")
 
@@ -222,23 +222,22 @@ def run():
     image = stash.graphql(FIND_IMAGE, {"image_id": str(image_id)}).get("findImage")
 
     if not image:
-        log.error(f"Image {image_id} not found in Stash")
-        announce_result_to_stash(None)
+        raise StashError(f"Image {image_id} not found in Stash")
 
     performers = image.get("performers") or []
     image_url = (image.get("paths") or {}).get("image")
 
     if not image_url:
-        log.error(f"Image {image_id} has no image path")
-        announce_result_to_stash(None)
+        raise StashError(f"Image {image_id} has no image path")
 
     if len(performers) == 0:
-        log.error(f"Image {image_id} has no performers attached")
-        announce_result_to_stash(None)
-    elif len(performers) > 1:
+        raise StashError(f"Image {image_id} has no performers attached")
+    if len(performers) > 1:
         performer_names = ", ".join(p.get("name", "Unknown") for p in performers)
-        log.error(f"Image {image_id} has multiple performers: {performer_names}")
-        announce_result_to_stash(None)
+        raise StashError(
+            f"Image {image_id} has multiple performers: {performer_names}. "
+            "It needs exactly one Performer attached."
+        )
 
     performer = performers[0]
     performer_id = performer.get("id")
@@ -246,17 +245,26 @@ def run():
 
     log.debug(f"Updating performer '{performer_name}' (ID: {performer_id}) with image {image_id}")
 
-    image_data = stash.fetch_data_uri(image_url)
-    updated = stash.graphql(UPDATE_PERFORMER, {"input": {"id": performer_id, "image": image_data}})
+    image_data_uri = stash.fetch_data_uri(image_url)
+    updated = stash.graphql(UPDATE_PERFORMER, {"input": {"id": performer_id, "image": image_data_uri}})
 
     if not updated.get("performerUpdate"):
-        log.error(f"Failed to update performer {performer_id} image")
-        announce_result_to_stash(None)
+        raise StashError(f"Failed to update performer {performer_id} image")
 
     log.info(f"Successfully updated performer '{performer_name}' profile image")
 
+
+def main() -> NoReturn:
+    try:
+        set_performer_image_from_fragment(read_fragment())
+    except StashError as e:
+        log.error(str(e))
+        # 69 tells Stash the scrape failed, so the UI shows it
+        sys.exit(69)
+
     # Return empty result - the performer's image has been updated
-    announce_result_to_stash({})
+    print(json.dumps({}))
+    sys.exit(0)
 
 
 if __name__ == "__main__":

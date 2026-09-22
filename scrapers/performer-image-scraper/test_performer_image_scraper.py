@@ -43,10 +43,11 @@ def error(msg): _log("ERROR", msg)
 class FakeStash:
     """A minimal Stash: findImage, performerUpdate, and image bytes."""
 
-    def __init__(self, api_key=None, performers=None, image_exists=True, tls=None):
+    def __init__(self, api_key=None, performers=None, image_exists=True, tls=None, graphql_html=False):
         self.api_key = api_key
         self.performers = [{"id": "7", "name": "Jane Doe"}] if performers is None else performers
         self.image_exists = image_exists
+        self.graphql_html = graphql_html
         self.performer_updates = []
         self.api_keys_seen = []
         fake = self
@@ -84,6 +85,13 @@ class FakeStash:
 
             def do_POST(self):
                 if not self._authorised():
+                    return
+                if fake.graphql_html:
+                    # e.g. a reverse proxy's login page
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html")
+                    self.end_headers()
+                    self.wfile.write(b"<html><body>Please log in</body></html>")
                     return
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 query = body["query"]
@@ -152,18 +160,21 @@ class ScraperTestCase(unittest.TestCase):
         path.write_text("".join(f"{k}: {v}\n" for k, v in values.items()))
         return path
 
-    def run_scraper(self, image_id="3091701"):
+    def run_scraper(self, image_id="3091701", expect_exit=0, stdin=None):
+        """Run the scraper; 0 means it worked, 69 tells Stash the scrape failed."""
         result = subprocess.run(
             [sys.executable, SCRAPER.name],
-            input=json.dumps({"id": image_id}),
+            input=json.dumps({"id": image_id}) if stdin is None else stdin,
             cwd=self.scraper_dir,
             env=self.env,
             capture_output=True,
             text=True,
             timeout=30,
         )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout), {})
+        self.assertEqual(result.returncode, expect_exit, result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        if expect_exit == 0:
+            self.assertEqual(json.loads(result.stdout), {})
         return result.stderr
 
 
@@ -174,6 +185,7 @@ class TestPerformerImageScraper(ScraperTestCase):
             self.tmp / "elsewhere" / "config.yml", api_key="secret-key", port=stash.port
         )
         self.env["STASH_CONFIG_FILE"] = str(config)
+        self.assertNotEqual(stash.port, 9999, "must prove the configured port is honoured")
 
         log = self.run_scraper()
 
@@ -211,6 +223,16 @@ class TestPerformerImageScraper(ScraperTestCase):
 
         self.assertEqual(len(stash.performer_updates), 1, log)
 
+    def test_config_ini_fallback_works_when_py_common_is_a_namespace_package(self):
+        stash = self.start_stash(api_key="ini-key")
+        self.write_config(self.config_dir / "config.yml", port=stash.port)
+        (self.py_common / "__init__.py").unlink()
+        (self.py_common / "config.ini").write_text("api_key = ini-key\n")
+
+        log = self.run_scraper()
+
+        self.assertEqual(len(stash.performer_updates), 1, log)
+
     def test_sends_no_api_key_when_stash_has_no_auth(self):
         stash = self.start_stash(api_key=None)
         self.write_config(self.config_dir / "config.yml", port=stash.port)
@@ -226,7 +248,7 @@ class TestErrorsNameTheRealCause(ScraperTestCase):
         stash = self.start_stash(api_key="secret-key")
         self.write_config(self.config_dir / "config.yml", port=stash.port)
 
-        log = self.run_scraper()
+        log = self.run_scraper(expect_exit=69)
 
         self.assertEqual(stash.performer_updates, [])
         self.assertIn("authentication enabled but no API key was found", log)
@@ -237,7 +259,7 @@ class TestErrorsNameTheRealCause(ScraperTestCase):
         stash = self.start_stash(api_key="current-key")
         config = self.write_config(self.config_dir / "config.yml", api_key="stale-key", port=stash.port)
 
-        log = self.run_scraper()
+        log = self.run_scraper(expect_exit=69)
 
         self.assertEqual(stash.performer_updates, [])
         self.assertIn("rejected the API key", log)
@@ -251,7 +273,7 @@ class TestErrorsNameTheRealCause(ScraperTestCase):
             free_port = s.getsockname()[1]
         self.write_config(self.config_dir / "config.yml", port=free_port)
 
-        log = self.run_scraper()
+        log = self.run_scraper(expect_exit=69)
 
         self.assertIn(f"Could not connect to Stash at http://localhost:{free_port}", log)
         self.assertNotIn("not found in Stash", log)
@@ -260,7 +282,7 @@ class TestErrorsNameTheRealCause(ScraperTestCase):
         stash = self.start_stash(image_exists=False)
         self.write_config(self.config_dir / "config.yml", port=stash.port)
 
-        log = self.run_scraper()
+        log = self.run_scraper(expect_exit=69)
 
         self.assertIn("Image 3091701 not found in Stash", log)
 
@@ -268,7 +290,7 @@ class TestErrorsNameTheRealCause(ScraperTestCase):
         stash = self.start_stash(performers=[])
         self.write_config(self.config_dir / "config.yml", port=stash.port)
 
-        log = self.run_scraper()
+        log = self.run_scraper(expect_exit=69)
 
         self.assertEqual(stash.performer_updates, [])
         self.assertIn("has no performers attached", log)
@@ -277,10 +299,24 @@ class TestErrorsNameTheRealCause(ScraperTestCase):
         stash = self.start_stash(performers=[{"id": "1", "name": "Ann"}, {"id": "2", "name": "Bea"}])
         self.write_config(self.config_dir / "config.yml", port=stash.port)
 
-        log = self.run_scraper()
+        log = self.run_scraper(expect_exit=69)
 
         self.assertEqual(stash.performer_updates, [])
         self.assertIn("multiple performers: Ann, Bea", log)
+        self.assertIn("exactly one", log)
+
+    def test_non_json_response_says_stash_did_not_answer_graphql(self):
+        stash = self.start_stash(graphql_html=True)
+        self.write_config(self.config_dir / "config.yml", port=stash.port)
+
+        log = self.run_scraper(expect_exit=69)
+
+        self.assertIn("did not return JSON", log)
+
+    def test_malformed_fragment_is_reported(self):
+        log = self.run_scraper(expect_exit=69, stdin="not json")
+
+        self.assertIn("Could not read the fragment", log)
 
 
 @unittest.skipUnless(shutil.which("openssl"), "openssl needed to make a self-signed cert")
