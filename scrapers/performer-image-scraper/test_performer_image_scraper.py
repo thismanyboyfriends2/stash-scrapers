@@ -204,6 +204,19 @@ class TestPerformerImageScraper(ScraperTestCase):
 
         self.assertEqual(len(stash.performer_updates), 1, log)
 
+    def test_finds_config_when_installed_from_a_source_index(self):
+        # Stash installs source-index scrapers one level deeper:
+        # <config>/scrapers/<source>/<scraper>/
+        self.scraper_dir = self.config_dir / "scrapers" / "thismanyboyfriends2" / "performer-image-scraper"
+        self.scraper_dir.mkdir(parents=True)
+        shutil.copy(SCRAPER, self.scraper_dir)
+        stash = self.start_stash(api_key="secret-key")
+        self.write_config(self.config_dir / "config.yml", api_key="secret-key", port=stash.port)
+
+        log = self.run_scraper()
+
+        self.assertEqual(len(stash.performer_updates), 1, log)
+
     def test_falls_back_to_home_stash_config(self):
         stash = self.start_stash(api_key="secret-key")
         self.write_config(self.home / ".stash" / "config.yml", api_key="secret-key", port=stash.port)

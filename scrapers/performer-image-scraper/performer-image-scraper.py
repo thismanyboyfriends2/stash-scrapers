@@ -61,13 +61,16 @@ def find_stash_config():
     """Locate Stash's config.yml, or None if it can't be found.
 
     Checked in order: $STASH_CONFIG_FILE (set by the official Docker image),
-    the config dir this scraper is installed under (Stash runs it with the
-    working dir set to <config>/scrapers/<name>/), then the default ~/.stash.
+    the config dir this scraper is installed under, then the default ~/.stash.
+    Stash runs the scraper with its working dir inside <config>/scrapers/ —
+    <name>/ when copied in by hand, <source>/<name>/ when installed from a
+    source index — so the config dir is the parent of the nearest "scrapers".
     """
     candidates = []
     if os.environ.get("STASH_CONFIG_FILE"):
         candidates.append(Path(os.environ["STASH_CONFIG_FILE"]))
-    candidates.append(Path.cwd().parent.parent / "config.yml")
+    cwd = Path.cwd()
+    candidates += [d.parent / "config.yml" for d in (cwd, *cwd.parents) if d.name == "scrapers"]
     candidates.append(Path.home() / ".stash" / "config.yml")
     return next((p for p in candidates if p.is_file()), None)
 
